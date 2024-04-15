@@ -1,0 +1,29 @@
+## This is a configuration file for the different parameters used in the project
+
+## Path configurations
+## Path to the datasets -> str
+dataset_path: '/home/niksta/catkin_ws/src/ada-key/src/datasets'
+## Choose dataset -> str
+dataset: 'KITTI' # 'KITTI' or 'Ford' ('NCLT' coming soon)
+## KITTI sequences to use -> List[str]
+kitti_sequences: ['00', '02', '05', '06', '07', '08']
+## Ford Campus sequences to use -> list
+ford_sequences: ['1']#, '2']
+## Path to save results
+save_path: '/home/niksta/catkin_ws/src/ada-key/results'
+
+## Options for the optimization tests
+## Choose descriptor -> str
+descriptor: 'ot' # 'ot' or 'sc'
+## Read descriptors from file or generate them -> bool
+from_file: False
+## Path to weights file -> str
+weights_path: '/home/niksta/catkin_ws/src/ada-key/src/descriptors/OverlapTransformer/config/weights/pretrained_overlap_transformer.pth.tar'
+
+## Optimization parameters
+## Alpha weight (rmt) -> float
+alpha: 1.0
+## Beta weight (ipt) -> float
+beta: 1.0
+## Window size -> int
+window_size: 10
