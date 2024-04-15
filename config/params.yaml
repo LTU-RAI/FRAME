@@ -22,9 +22,9 @@ max_cor_dist_2: 1.0
 ## Frame ID -> str: for visualization
 frame_id: 'map'
 ## Robot 1 map topic -> str
-m1_topic: 'map'
+m1_topic: '/map'
 ## Robot 2 map topic -> str
-m2_topic: 'map'
+m2_topic: '/map'
 ## Merged map topic -> str
 merged_topic: '/merged_map'
 
@@ -37,5 +37,5 @@ m2_ns: 'robot2'
 ###### Node parameters ######
 ## Number of threads -> int: for parallel processing
 num_threads: 8
-## Rate -> int: for node frequency
-rate: 10
+## Rate -> int: for node frequency (Hz)
+rate: 1
