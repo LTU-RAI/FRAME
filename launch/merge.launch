@@ -1,0 +1,8 @@
+<launch>
+    <!-- Namespace param -->
+    <arg name="namespace" default="robot" />
+    <!-- Launch keyframes node -->
+    <node ns="$(arg namespace)" name="keyframes" pkg="frame" type="keyframes.py" output="screen" clear_params="true"/>
+    <!-- Launch publish-vectors node -->
+    <node ns="$(arg namespace)" name="publish_vectors" pkg="frame" type="publish_vectors.py" output="screen" clear_params="true"/>
+</launch>
