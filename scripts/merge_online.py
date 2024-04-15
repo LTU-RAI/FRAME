@@ -5,9 +5,9 @@
 	 			for Egocentric multi-robot exploration 
 """
 
-import time, rospy
 import numpy as np
 import open3d as o3d
+import time, rospy, yaml
 from typing import List
 import tensorflow, rospkg, pygicp
 from sklearn.neighbors import KDTree
@@ -20,35 +20,34 @@ from utils_frame.robotFeatures import RobotFeatures
 rospack = rospkg.RosPack()
 ## Get the file path for rospy_tutorials
 rospack_path = rospack.get_path('frame')
-## Path to CloudCompare results
-path_to_cc_results = rospack_path + "/data/metrics/lkab_left_right_T0.txt"
-## Load the orientation estimate model
-orientation_estimate = tensorflow.keras.models.load_model(rospack_path + 
-                            "/saved_models/orientation_estimate_kps")
+## Get config file path
+config_path = rospack.get_path('frame') + '/config/config.yaml'
 
-## Parameters
-voxel_down_sample = 0.75   # Downsample of pcds for sphere extraction
-sphere_radius = 10   # Downsampled spheres radius
-filtering_radius = 0.2   # Outlier removal filter radius
-nb_neighbors = 10   # Outlier removal number of neighbors 
-std_ratio = 0.5   # Outlier removal std ratio
-frame_id = "map"   # Frame to publish pcds
-
-## GICP parameters
-max_cor_dist_1 = 3  # Max correspondacies distance 
-max_cor_dist_2 = 1
-
-## Saving parameters
-save_name = "kps"   #  Name tag for saving pcds
+## Load parameters
+params = yaml.load(open(config_path))
+## Set parameters
+voxel_down_sample = params['voxel_down_sample']
+sphere_radius = params['sphere_radius']
+filtering_radius = params['filtering_radius']
+nb_neighbors = params['nb_neighbors']
+std_ratio = params['std_ratio']
+frame_id = params['frame_id']
+max_cor_dist_1 = params['max_cor_dist_1']
+max_cor_dist_2 = params['max_cor_dist_2']	
+m1_topic = params['m1_topic']
+m2_topic = params['m2_topic']
+m1_ns = params['m1_ns']
+m2_ns = params['m2_ns']
+merged_topic = params['merged_topic']
+num_threads = params['number_of_threads']
+rate = params['rate']
 
 ## Target vectors, poses and map path
 tr1_topic = "/tr1"
 v1_topic =  "/v1"
-m1_topic = "/m1"
 ## Incoming vectors, poses and map path
 tr2_topic = "/tr2"
 v2_topic = "/v2"
-m2_topic = "/m2"
 
 
 class Node:
@@ -62,28 +61,6 @@ class Node:
 		self.num_threads = num_threads
 		self.max_cor_dist_1 = max_cor_dist_1
 		self.max_cor_dist_2 = max_cor_dist_2
-
-	def error(self,path_to_file:str, T:np.ndarray) -> List[float]:
-		# Open the file for reading
-		with open(path_to_file) as f:
-			# Read the lines of the file into a list
-			lines = f.readlines()
-			f.close()
-		data = []
-		for line in lines:
-			row = line.strip().split()
-			if '[' in row[0]: row.pop(0) 
-			row = [float(x) for x in row]
-			data.append(row)
-		cc_T0 = data[0:4]
-		cc_Treg = data[4:]
-		cc_T =  np.subtract(cc_T0, cc_Treg)
-		dT = np.subtract(T, cc_T)
-		translation_error = np.linalg.norm(dT[0:3,3:])
-		rotation_error = np.linalg.norm(dT[0:3,0:3])
-		rospy.loginfo("Translation error: %.3f m" % (translation_error))
-		rospy.loginfo("Rotation error: %.3f deg" % (rotation_error))
-		return [translation_error, rotation_error]
 
 	def extract_sphere(self, pcd:o3d.geometry.PointCloud, 
 						center:float, radius:float) -> o3d.geometry.PointCloud:
@@ -110,7 +87,7 @@ class Node:
 		## Log index info
 		rospy.loginfo("Min indexes info: " + str(argmin) + ", " + str(argmin_index))
 		## Estimate yaw discrepancy
-		yaw = orientation_estimate(tensorflow.expand_dims((self.r1.w[argmin_index], self.r2.w[argmin]),0)) # ( self.r1.w[argmin_index][0], self.r2.w[argmin])
+		# yaw = orientation_estimate(tensorflow.expand_dims((self.r1.w[argmin_index], self.r2.w[argmin]),0)) # ( self.r1.w[argmin_index][0], self.r2.w[argmin])
 		dtheta = np.pi #np.pi - ((np.arccos(yaw[0][0]) + np.arcsin(yaw[0][1])))*np.pi/2 #(1 - (yaw[0][0] + yaw[0][1]))*np.pi/2
 		## Log yaw info
 		rospy.loginfo("Yaw discrepancy: %.3f deg \n" % (180*dtheta/np.pi))
@@ -205,7 +182,7 @@ if __name__ == '__main__':
 	## Initialize ROS node
 	rospy.init_node('merge-online', anonymous=True)
 	## Set node working rate
-	rate = rospy.Rate(5) # 5Hz
+	ros_rate = rospy.Rate(rate) # 5Hz
     ## Load incoming and target maps
 	## Create object
 	robot1 = RobotFeatures(v1_topic, tr1_topic, m1_topic, from_file=False, namespace="r1")
@@ -215,9 +192,9 @@ if __name__ == '__main__':
 	node = Node(robot1, robot2, 
 			sample_radius=sphere_radius,
 			max_cor_dist_1=max_cor_dist_1,
-			max_cor_dist_2=max_cor_dist_2)
+			max_cor_dist_2=max_cor_dist_2, 
+			num_threads=num_threads)
 	T = node.merge()
-	node.error(path_to_cc_results, T)
 	node.publish_maps()
 	# node.save_point_clouds(save_name=save_name)
 	## Keep nodes running
