@@ -1,4 +1,4 @@
-# frame
+# FRAME
 FRAME: Fast and Robust Autonomous 3D Point Cloud Map-Merging for Egocentric Multi-Robot Exploration
 
 If you found this work useful, please cite as follows:
