@@ -1,29 +1,28 @@
 ## This is a configuration file for the different parameters used in the project
 
-## Path configurations
-## Path to the datasets -> str
-dataset_path: '/home/niksta/catkin_ws/src/ada-key/src/datasets'
-## Choose dataset -> str
-dataset: 'KITTI' # 'KITTI' or 'Ford' ('NCLT' coming soon)
-## KITTI sequences to use -> List[str]
-kitti_sequences: ['00', '02', '05', '06', '07', '08']
-## Ford Campus sequences to use -> list
-ford_sequences: ['1']#, '2']
-## Path to save results
-save_path: '/home/niksta/catkin_ws/src/ada-key/results'
+###### Filter parameters ######
+## Voxel downsampling parameter -> float: for sphere extraction
+voxel_down_sample: 0.75
+## Sphere radius -> int: for sphere extraction
+sphere_radius: 10
+## Filtering radius -> float: for outlier removal
+filtering_radius: 0.2
+## Number of neighbors -> int: for outlier removal
+num_neighbors: 10
+## Std ratio -> float: for outlier removal
+std_ratio: 0.5
 
-## Options for the optimization tests
-## Choose descriptor -> str
-descriptor: 'ot' # 'ot' or 'sc'
-## Read descriptors from file or generate them -> bool
-from_file: False
-## Path to weights file -> str
-weights_path: '/home/niksta/catkin_ws/src/ada-key/src/descriptors/OverlapTransformer/config/weights/pretrained_overlap_transformer.pth.tar'
+###### GICP parameters ######
+## Maximum correspondence distance, step 1 -> float
+max_cor_dist_1: 3.0
+## Maximum correspondence distance, step 2 -> float
+max_cor_dist_2: 1.0
 
-## Optimization parameters
-## Alpha weight (rmt) -> float
-alpha: 1.0
-## Beta weight (ipt) -> float
-beta: 1.0
-## Window size -> int
-window_size: 10
+###### Topics and Frames ######
+## Frame ID -> str: for visualization
+frame_id: 'map'
+## Robot 1 map topic -> str
+m1_topic: '/robot1/map'
+## Robot 2 map topic -> str
+m2_topic: '/robot2/map'
+
