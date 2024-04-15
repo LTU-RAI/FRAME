@@ -182,7 +182,7 @@ if __name__ == '__main__':
 	## Initialize ROS node
 	rospy.init_node('merge-online', anonymous=True)
 	## Set node working rate
-	ros_rate = rospy.Rate(rate) # 5Hz
+	ros_rate = rospy.Rate(rate) 
     ## Load incoming and target maps
 	## Create object
 	robot1 = RobotFeatures(v1_topic, tr1_topic, m1_topic, from_file=False, namespace="r1")
