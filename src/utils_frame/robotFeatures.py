@@ -14,8 +14,8 @@ class RobotFeatures:
         ## Initialize map o3d object
         self.map = o3d.geometry.PointCloud()
         ## Initialize center and sphere
-        # self.sphere = o3d.geometry.PointCloud()
-        # self.center = o3d.geometry.PointCloud()
+        self.sphere = o3d.geometry.PointCloud()
+        self.center = o3d.geometry.PointCloud()
         ## Initialize publishers
         # self.m_publisher = rospy.Publisher(namespace + "/map", PointCloud2,
         #                                     queue_size=1, latch=True)
@@ -32,7 +32,7 @@ class RobotFeatures:
             # self.from_topic(vectors, poses, map, namespace)
             self.from_topic(map, namespace)
 
-    def from_file(self, vectors:str, poses:str, map:str, namespace:str) -> None:
+    def from_file(self, map:str, namespace:str) -> None:
         ## Load incoming and target maps
         self.map = o3d.io.read_point_cloud(map)
         rospy.loginfo("Number of points in " + namespace + \
@@ -50,7 +50,7 @@ class RobotFeatures:
         # ## Split to q and w vectors
         # self.q, self.w = self.vectors[0], self.vectors[1]
 
-    def from_topic(self, vectors:str, poses:str, map:str, namespace:str):
+    def from_topic(self, map:str, namespace:str):
         ## Subsrcibe to global map
         self.map_subscriber = rospy.Subscriber(namespace + map, \
                                 PointCloud2, self.map_callback, queue_size=1)
@@ -68,7 +68,7 @@ class RobotFeatures:
                             field_names=("x", "y", "z", "intensity"), skip_nans=True))
         ## Make into open3d object
         if map_points != []:
-            self.map.points = o3d.utility.Vector3dVector(map_points)
+            self.map.points = o3d.utility.Vector3dVector(list(np.asarray(map_points)[:,:3]))
     
     # def descriptors_callback(self, decsriptorArray_msg:DescriptorsArray) -> None:
     #     ## Get q and w vectors

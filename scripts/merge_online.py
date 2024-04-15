@@ -9,8 +9,9 @@ import numpy as np
 import open3d as o3d
 import time, rospy, yaml
 from typing import List
-import tensorflow, rospkg, pygicp
+import rospkg, pygicp
 from sklearn.neighbors import KDTree
+from sensor_msgs.msg import PointCloud2
 from utils_frame.visualize import visualize
 from utils_frame.pcd_publisher import pcd_publisher
 from utils_frame.robotFeatures import RobotFeatures
@@ -21,10 +22,10 @@ rospack = rospkg.RosPack()
 ## Get the file path for rospy_tutorials
 rospack_path = rospack.get_path('frame')
 ## Get config file path
-config_path = rospack.get_path('frame') + '/config/config.yaml'
+config_path = rospack.get_path('frame') + '/config/params.yaml'
 
 ## Load parameters
-params = yaml.load(open(config_path))
+params = yaml.load(open(config_path), Loader=yaml.FullLoader)
 ## Set parameters
 voxel_down_sample = params['voxel_down_sample']
 sphere_radius = params['sphere_radius']
@@ -34,12 +35,12 @@ std_ratio = params['std_ratio']
 frame_id = params['frame_id']
 max_cor_dist_1 = params['max_cor_dist_1']
 max_cor_dist_2 = params['max_cor_dist_2']	
-m1_topic = params['m1_topic']
-m2_topic = params['m2_topic']
-m1_ns = params['m1_ns']
-m2_ns = params['m2_ns']
+m1_topic = params['r1_topic']
+m2_topic = params['r2_topic']
+r1_ns = params['r1_ns']
+r2_ns = params['r2_ns']
 merged_topic = params['merged_topic']
-num_threads = params['number_of_threads']
+num_threads = params['num_threads']
 rate = params['rate']
 
 ## Target vectors, poses and map path
@@ -57,6 +58,11 @@ class Node:
 		## Initialize two agens
 		self.r1 = robot1
 		self.r2 = robot2
+		## Initialize merged map
+		self.merged_map = o3d.geometry.PointCloud()
+		## Initialize merged map publisher
+		self.m_publisher = rospy.Publisher(merged_topic, PointCloud2, queue_size=1, latch=True)
+		## Set parameters
 		self.sample_radius = sample_radius
 		self.num_threads = num_threads
 		self.max_cor_dist_1 = max_cor_dist_1
@@ -76,53 +82,58 @@ class Node:
 		return sampled_pcd
 
 	def merge(self) -> List[List[float]]:
+		## Wait until the maps are not empty
+		while np.shape(np.asarray(self.r1.map.points))[0] == 0 and np.shape(np.asarray(self.r1.map.points))[0] == 0:
+			rospy.loginfo("Waiting to receive maps...")
+			rospy.sleep(1)
+		## Receive maps
+		rospy.loginfo("Received maps...")
+		## Print size of maps
+		rospy.loginfo("Number of points in r1/map: %.f" % np.shape(np.asarray(self.r1.map.points))[0])
+		rospy.loginfo("Number of points in r2/map: %.f" % np.shape(np.asarray(self.r2.map.points))[0])
 		## Start timer
 		start_time = time.time()
 		## Make kd-tree with target vectors and query with incoming vectors
-		tree = KDTree(self.r1.q)
-		dist, ind =  tree.query(self.r2.q, k=1)
+		# tree = KDTree(self.r1.q)
+		# dist, ind =  tree.query(self.r2.q, k=1)
 		## Get indexes for vector pairs with min and max distance
-		argmin = 10 # np.argmin(dist)
+		argmin = 0 # np.argmin(dist)
 		argmin_index = 0 # argmin_index
 		## Log index info
 		rospy.loginfo("Min indexes info: " + str(argmin) + ", " + str(argmin_index))
 		## Estimate yaw discrepancy
 		# yaw = orientation_estimate(tensorflow.expand_dims((self.r1.w[argmin_index], self.r2.w[argmin]),0)) # ( self.r1.w[argmin_index][0], self.r2.w[argmin])
-		dtheta = np.pi #np.pi - ((np.arccos(yaw[0][0]) + np.arcsin(yaw[0][1])))*np.pi/2 #(1 - (yaw[0][0] + yaw[0][1]))*np.pi/2
+		dtheta = 0.0 #np.pi - ((np.arccos(yaw[0][0]) + np.arcsin(yaw[0][1])))*np.pi/2 #(1 - (yaw[0][0] + yaw[0][1]))*np.pi/2
 		## Log yaw info
 		rospy.loginfo("Yaw discrepancy: %.3f deg \n" % (180*dtheta/np.pi))
 		## Get points inside the spheres
 		tic = time.time()
-		self.r1.sphere = self.extract_sphere(self.r1.map.voxel_down_sample(voxel_down_sample), self.r1.trajectory[argmin_index, 0:3], self.sample_radius)
-		self.r2.sphere = self.extract_sphere(self.r2.map.voxel_down_sample(voxel_down_sample), self.r2.trajectory[argmin, 0:3], self.sample_radius)
+		self.r1.sphere = self.extract_sphere(self.r1.map.voxel_down_sample(voxel_down_sample), [0.0, 0.0, 0.5], self.sample_radius)
+		self.r2.sphere = self.extract_sphere(self.r2.map.voxel_down_sample(voxel_down_sample), [0.0, 0.0, 0.5], self.sample_radius)
 		toc = time.time()
 		## Log time info
 		rospy.loginfo("Sampling took %.3f seconds \n" % (toc - tic))
 		## Create initial transformation
-		T1 = [[np.cos(0), -np.sin(0), 0, -self.r2.trajectory[argmin][0]], \
-				[np.sin(0), np.cos(0), 0, -self.r2.trajectory[argmin][1]], \
-				[0, 0, 1, -self.r2.trajectory[argmin][2]], \
+		T1 = [[np.cos(0), -np.sin(0), 0, 0.0], \
+				[np.sin(0), np.cos(0), 0, 0.0], \
+				[0, 0, 1, -0.5], \
 				[0, 0, 0, 1]]
 		T2 = [[np.cos(dtheta), -np.sin(dtheta), 0, 0], \
 				[np.sin(dtheta), np.cos(dtheta), 0, 0], \
 				[0, 0, 1, 0], \
 				[0, 0, 0, 1]]
-		T3 = [[np.cos(0), -np.sin(0), 0, self.r1.trajectory[argmin_index][0]], \
-				[np.sin(0), np.cos(0), 0, self.r1.trajectory[argmin_index][1]], \
-				[0, 0, 1, self.r1.trajectory[argmin_index][2]], \
+		T3 = [[np.cos(0), -np.sin(0), 0, 0.0], \
+				[np.sin(0), np.cos(0), 0, 0.0], \
+				[0, 0, 1, 0.5], \
 				[0, 0, 0, 1]]        
 		self.T = np.array(T3) @ np.array(T2) @ np.array(T1)
 		## Do transformations
 		self.r2.map.transform(self.T)
 		self.r2.sphere.transform(self.T)
 		## Register centers
-		c1_ = [[self.r1.trajectory[argmin_index][0],
-						self.r1.trajectory[argmin_index][1],
-						self.r1.trajectory[argmin_index][2]]]
+		c1_ = [[0.0, 0.0, 0.5]]
 		self.r1.center.points = o3d.utility.Vector3dVector(np.asarray(c1_))
-		c2_ = [[self.r2.trajectory[argmin][0],
-						self.r2.trajectory[argmin][1],
-						self.r2.trajectory[argmin][2]]]
+		c2_ = [[0.0, 0.0, 0.5]]
 		self.r2.center.points = o3d.utility.Vector3dVector(np.asarray(c2_))
 		## Log initial transform
 		rospy.loginfo("Estimated initial transform: \n{} \n".format(self.T))
@@ -150,53 +161,43 @@ class Node:
 		self.r2.center.transform(self.final_T)    
 		## Log final transformation matrix 
 		rospy.loginfo("Final transform: \n{} \n".format(self.final_T))
+		## Concatinate maps to create merged map, each is a Nx3 numpy array
+		self.merged_map.points = o3d.utility.Vector3dVector(np.concatenate((np.asarray(self.r1.map.points), 
+																	  np.asarray(self.r2.map.points)), axis=0))
+		## Publish merged map
+		pcd_publisher(frame_id, self.m_publisher, self.merged_map.points)
 		## Return final Transform
 		return self.final_T
 
-	def publish_maps(self) -> None:
-		## Publishers
-		publishers = [self.r1.m_publisher, self.r2.m_publisher, 
-					  self.r1.s_publisher, self.r2.s_publisher, 
-					  self.r1.c_publisher, self.r2.c_publisher]
-		## Point clouds
-		self.point_clouds = [self.r1.map, self.r2.map, 
-							 self.r1.sphere, self.r2.sphere, 
-							 self.r1.center, self.r2.center]
-		## Publish all maps and spheres
-		for publisher, pcd in zip(publishers, self.point_clouds):
-			pcd_publisher(frame_id, publisher, pcd.points)
-
-	def save_point_clouds(self, save_name:str) -> None:
-		## Save changed point cloud sphere
-		o3d.io.write_point_cloud("/home/niksta/catkin_ws/src/change_detection/data/output/ \
-									changed_scan_" + save_name + "_" + ".pcd", self.cs)
-		## Save base point cloud sphere
-		o3d.io.write_point_cloud("/home/niksta/catkin_ws/src/change_detection/data/output/ \
-									base_scan_" + save_name + "_" + ".pcd", self.bs)
-		## Save changed point cloud object
-		o3d.io.write_point_cloud("/home/niksta/catkin_ws/src/change_detection/data/output/ \
-									object_" + save_name + "_" + ".pcd", self.object_pcd)
+	# def publish_maps(self) -> None:
+	# 	## Publishers
+	# 	publishers = [self.r1.m_publisher, self.r2.m_publisher]
+	# 				#   self.r1.s_publisher, self.r2.s_publisher, 
+	# 				#   self.r1.c_publisher, self.r2.c_publisher]
+	# 	## Point clouds
+	# 	self.point_clouds = [self.r1.map, self.r2.map]
+	# 						#  self.r1.sphere, self.r2.sphere, 
+	# 						#  self.r1.center, self.r2.center]
+	# 	## Publish all maps and spheres
+	# 	for publisher, pcd in zip(publishers, self.point_clouds):
+	# 		pcd_publisher(frame_id, publisher, pcd.points)
 
 
 if __name__ == '__main__':
 	## Initialize ROS node
-	rospy.init_node('merge-online', anonymous=True)
+	rospy.init_node('map_merge', anonymous=True)
 	## Set node working rate
 	ros_rate = rospy.Rate(rate) 
     ## Load incoming and target maps
 	## Create object
-	robot1 = RobotFeatures(v1_topic, tr1_topic, m1_topic, from_file=False, namespace="r1")
-	robot2 = RobotFeatures(v2_topic, tr2_topic, m2_topic, from_file=False, namespace="r2")
-	rospy.loginfo("Number of points in M1: %.f" % np.shape(np.asarray(robot1.map.points))[0])
-	rospy.loginfo("Number of points in M2: %.f" % np.shape(np.asarray(robot2.map.points))[0])
+	robot1 = RobotFeatures(m1_topic, from_file=False, namespace=r1_ns)
+	robot2 = RobotFeatures(m2_topic, from_file=False, namespace=r2_ns)
 	node = Node(robot1, robot2, 
 			sample_radius=sphere_radius,
 			max_cor_dist_1=max_cor_dist_1,
 			max_cor_dist_2=max_cor_dist_2, 
 			num_threads=num_threads)
 	T = node.merge()
-	node.publish_maps()
-	# node.save_point_clouds(save_name=save_name)
 	## Keep nodes running
 	while not rospy.is_shutdown():
 		rospy.spin()

@@ -8,7 +8,7 @@ sphere_radius: 10
 ## Filtering radius -> float: for outlier removal
 filtering_radius: 0.2
 ## Number of neighbors -> int: for outlier removal
-num_neighbors: 10
+nb_neighbors: 10
 ## Std ratio -> float: for outlier removal
 std_ratio: 0.5
 
@@ -22,17 +22,17 @@ max_cor_dist_2: 1.0
 ## Frame ID -> str: for visualization
 frame_id: 'map'
 ## Robot 1 map topic -> str
-m1_topic: '/map'
+r1_topic: '/lio_sam/mapping/map_global'
 ## Robot 2 map topic -> str
-m2_topic: '/map'
+r2_topic: '/lio_sam/mapping/map_local'
 ## Merged map topic -> str
 merged_topic: '/merged_map'
 
 ###### Namespaces ######
 ## Robot 1 namespace -> str
-m1_ns: 'robot1'
+r1_ns: 'robot1'
 ## Robot 2 namespace -> str
-m2_ns: 'robot2'
+r2_ns: 'robot2'
 
 ###### Node parameters ######
 ## Number of threads -> int: for parallel processing
