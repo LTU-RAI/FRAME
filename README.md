@@ -1,4 +1,4 @@
-# FRAME: A Modular Framework for Autonomous Map-merging: Advancements in the Field
+# FRAME: Fast and Robust Autonomous 3D Point Cloud Map-Merging for Egocentric Multi-Robot Exploration
 
 **Under construction...**
 
