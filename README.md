@@ -34,6 +34,11 @@
 
 ## Acknowledgement
 
+> Papers:
+>
+> - [2023 IEEE International Conference on Robotics and Automation (ICRA)](https://ieeexplore.ieee.org/document/10160771/)
+> - Accepted in [Transactions on Field Robotics (T-FR)](https://arxiv.org/abs/2404.18006)
+
 If you found this work useful, please cite as follows:
 
 ```
