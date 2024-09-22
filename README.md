@@ -52,13 +52,15 @@ If you found this work useful, please cite as follows:
     pages={3483-3489},
     doi={10.1109/ICRA48891.2023.10160771}
 }
-
-@misc{stathoulopoulos2024frame,
-      title={{FRAME: A Modular Framework for Autonomous Map-merging: Advancements in the Field}},
-      author={Nikolaos Stathoulopoulos and Björn Lindqvist and Anton Koval and Ali-akbar Agha-mohammadi and George Nikolakopoulos},
-      year={2024},
-      eprint={2404.18006},
-      archivePrefix={arXiv},
-      primaryClass={cs.RO}
+@ARTICLE{stathoulopoulos2024frame,
+  author={Stathoulopoulos, Nikolaos and Lindqvist, Björn and Koval, Anton and Agha-Mohammadi, Ali-Akbar and Nikolakopoulos, George},
+  journal={IEEE Transactions on Field Robotics},
+  title={{FRAME: A Modular Framework for Autonomous Map Merging: Advancements in the Field}},
+  year={2024},
+  volume={1},
+  number={},
+  pages={1-26},
+  keywords={Robots;Point cloud compression;Feature extraction;Three-dimensional displays;Robot sensing systems;Robot kinematics;Accuracy;Feature extraction;machine learning;multirobot systems (MRSs);simultaneous localization and mapping (SLAM)},
+  doi={10.1109/TFR.2024.3419439}
 }
 ```
